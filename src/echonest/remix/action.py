@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/app/.heroku/python/bin python
 # encoding: utf-8
 """
 action.py

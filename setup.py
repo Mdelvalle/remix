@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+#!/app/.heroku/python/bin python
 __version__ = "2.2.1"
 
 # Monkeypatch so that easy_install can install en-ffmpeg and youtube-dl
@@ -98,13 +97,10 @@ if is_mac or is_linux:
     else:
         data_path = '/usr/local/bin'
 if is_mac:
-    all_data_files  = [(data_path, ['external/en-ffmpeg/mac/en-ffmpeg', 'external/youtube-dl/youtube-dl'])]
-if is_linux:
-    all_data_files  = [(data_path, ['external/youtube-dl/youtube-dl'])]
+    all_data_files  = [(data_path, ['external/ffmpeg/mac/ffmpeg'])]
 
 if is_windows:
-    all_data_files  = [('.', ['external\\en-ffmpeg\\win\\en-ffmpeg.exe',
-                             'external\\youtube-dl\\youtube-dl',
+    all_data_files  = [('.', ['external\\ffmpeg\\win\\ffmpeg.exe',
                              'external\\pydirac225\\libs\\Windows\\DiracLE.dll'])]
 
 
@@ -143,7 +139,7 @@ setup(name='remix',
       maintainer='Brian Whitman, Thor Kell',
       maintainer_email='thor.kell@mail.mcgill.ca',
       url='http://developer.echonest.com/',
-      download_url='http://static.echonest.com/remix/packages/remix-%s.tar.gz' % __version__, 
+      download_url='https://github.com/Mdelvalle/remix.git', 
       license='New BSD',
       data_files= all_data_files,
       package_dir={'echonest':'src/echonest', 'pyechonest':'pyechonest/pyechonest'},
@@ -164,9 +160,6 @@ setup(name='remix',
 # Hack for pip install, to get correct permissions for en-ffmpeg and youtube-dl
 try:
     if is_mac:
-        os.chmod(os.path.join(data_path, 'en-ffmpeg'), 0755)
-        os.chmod(os.path.join(data_path, 'youtube-dl'), 0755)
-    if is_linux:
-        os.chmod(os.path.join(data_path, 'youtube-dl'), 0755)
+        os.chmod(os.path.join(data_path, 'ffmpeg'), 0755)
 except OSError:
     pass

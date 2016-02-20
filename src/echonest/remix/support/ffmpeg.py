@@ -19,7 +19,7 @@ def get_os():
     return False, False, True
 
 def ensure_valid(filename):
-    command = "en-ffmpeg -i %s -acodec copy -f null -" % filename
+    command = "ffmpeg -i %s -acodec copy -f null -" % filename
 
     if os.path.getsize(filename) == 0:
         raise ValueError("Input file contains 0 bytes")
@@ -51,7 +51,7 @@ def ffmpeg(infile, outfile=None, overwrite=True, bitRate=None,
     if type(infile) is str or type(infile) is unicode:
         filename = str(infile)
 
-    command = "en-ffmpeg"
+    command = "ffmpeg"
     if filename:
         command += " -i \"%s\"" % infile
     else:
@@ -141,7 +141,7 @@ def ffmpeg_downconvert(infile, lastTry=False):
     if type(infile) is str or type(infile) is unicode:
         filename = str(infile)
 
-    command = "en-ffmpeg" \
+    command = "ffmpeg" \
             + (" -i \"%s\"" % infile if filename else " -i pipe:0") \
             + " -b 32k -f mp3 pipe:1"
     log.info("Calling ffmpeg: %s", command)
@@ -223,7 +223,7 @@ def ffmpeg_error_check(parsestring):
                    "Could not find codec",  # corrupted, incomplete, or otherwise bad file
                     ]
     for num, line in enumerate(parse):
-        if "command not found" in line or "en-ffmpeg: not found" in line:
+        if "command not found" in line or "ffmpeg: not found" in line:
             raise RuntimeError(ffmpeg_install_instructions)
         for error in error_cases:
             if error in line:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/app/.heroku/python/bin python
 # Fixes the paths due to package dirs being ignored by setup.py develop:
 # https://bitbucket.org/tarek/distribute/issue/177/setuppy-develop-doesnt-support-package_dir
 
