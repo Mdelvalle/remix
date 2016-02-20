@@ -41,11 +41,7 @@ f.close()
 
 # Copy youtube-dl out
 print "Copying youtube-dl to /usr/local/bin"
-# If we're in a virtualenv:
-if 'real_prefix' in dir(sys):
-    data_path = os.path.join(sys.prefix, "local/bin/youtube-dl")
-else:
-    data_path = '/usr/local/bin/youtube-dl'
+data_path = os.path.join(sys.prefix, "local/bin/youtube-dl")
 shutil.copyfile('external/youtube-dl/youtube-dl', data_path)
 os.chmod(data_path, 0755)
 

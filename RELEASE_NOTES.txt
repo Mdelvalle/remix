@@ -1,11 +1,3 @@
-2.4.0:
-- Moved examples to new repo:  https://github.com/echonest/remix-examples
-
-2.3.0:
-- Added rhythmstring, synchstring, and codestring.
-- Added per-section key, tempo, and time signature data.
-- Bug fixes, install fixes.
-
 2.2.1:
 - Update dirac C extension.
 - Add better timestretch example.

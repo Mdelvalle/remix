@@ -10,9 +10,6 @@ from exceptionthread import ExceptionThread
 
 log = logging.getLogger(__name__)
 
-# Base name of the ffmpeg binary. Can be monkey-patched if desired.
-FFMPEG = 'en-ffmpeg'
-
 def get_os():
     """returns is_linux, is_mac, is_windows"""
     if hasattr(os, 'uname'):
@@ -22,11 +19,13 @@ def get_os():
     return False, False, True
 
 def ensure_valid(filename):
-    command = "%s -i %s -acodec copy -f null -" % (FFMPEG, filename)
+    command = "en-ffmpeg -i %s -acodec copy -f null -" % filename
+
     if os.path.getsize(filename) == 0:
         raise ValueError("Input file contains 0 bytes")
 
     log.info("Calling ffmpeg: %s", command)
+
     o = subprocess.call(command.split(),
                         stdout=open(os.devnull, 'wb'),
                         stderr=open(os.devnull, 'wb'))
@@ -52,34 +51,39 @@ def ffmpeg(infile, outfile=None, overwrite=True, bitRate=None,
     if type(infile) is str or type(infile) is unicode:
         filename = str(infile)
 
-    command = [FFMPEG, "-i", filename or "pipe:0"]
+    command = "en-ffmpeg"
+    if filename:
+        command += " -i \"%s\"" % infile
+    else:
+        command += " -i pipe:0"
 
     if overwrite:
-        command.append("-y")
+        command += " -y"
 
     if bitRate is not None:
-        command.extend(("-ab", str(bitRate) + "k"))
+        command += " -ab " + str(bitRate) + "k"
 
-    command.append("-ac")
     if numChannels is not None:
-        command.append(str(numChannels))
+        command += " -ac " + str(numChannels)
     else:
-        command.append("2")
+        command += " -ac 2"
 
-    command.append("-ar")
     if sampleRate is not None:
-        command.append(str(sampleRate))
+        command += " -ar " + str(sampleRate)
     else:
-        command.append("44100")
+        command += " -ar 44100" 
 
-    command.append(outfile or "pipe:1")
+    if outfile is not None:
+        command += " \"%s\"" % outfile
+    else:
+        command += " pipe:1"
     if verbose:
-        log.info(command)
+        print >> sys.stderr, command
 
     (lin, mac, win) = get_os()
     p = subprocess.Popen(
             command,
-            shell=False,
+            shell=True,
             stdin=(None if filename else subprocess.PIPE),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -98,8 +102,8 @@ def ffmpeg(infile, outfile=None, overwrite=True, bitRate=None,
             infile.seek(0)
         except:  # if the file is not seekable
             pass
-    # If FFMPEG couldn't read that, let's write to a temp file
-    # For some reason, this always seems to work from file (but not pipe)
+    #   If FFMPEG couldn't read that, let's write to a temp file
+    #   For some reason, this always seems to work from file (but not pipe)
     if 'Could not find codec parameters' in e and not lastTry:
         log.warning("FFMPEG couldn't find codec parameters - writing to temp file.")
         fd, name = tempfile.mkstemp('.audio')
@@ -137,7 +141,7 @@ def ffmpeg_downconvert(infile, lastTry=False):
     if type(infile) is str or type(infile) is unicode:
         filename = str(infile)
 
-    command = FFMPEG \
+    command = "en-ffmpeg" \
             + (" -i \"%s\"" % infile if filename else " -i pipe:0") \
             + " -b 32k -f mp3 pipe:1"
     log.info("Calling ffmpeg: %s", command)
@@ -176,7 +180,8 @@ def ffmpeg_downconvert(infile, lastTry=False):
     io.seek(0, os.SEEK_END)
     bytesize = io.tell()
     io.seek(0)
-    log.info("Transcoded to 32kbps mp3 in %ss. Final size: %s bytes.", (end - start), bytesize)
+    log.info("Transcoded to 32kbps mp3 in %ss. Final size: %s bytes.",
+             (end - start), bytesize)
     return io
 
 
@@ -192,18 +197,19 @@ def settings_from_ffmpeg(parsestring):
             segs = line.split(", ")
             for s in segs:
                 if "Hz" in s:
+                    #print "Found: "+str(s.split(" ")[0])+"Hz"
                     freq = int(s.split(" ")[0])
                 elif "stereo" in s:
+                    #print "stereo"
                     chans = 2
                 elif "mono" in s:
+                    #print "mono"
                     chans = 1
     return freq, chans
 
 ffmpeg_install_instructions = """
 en-ffmpeg not found! Please make sure ffmpeg is installed and create a link as follows:
     sudo ln -s `which ffmpeg` /usr/local/bin/en-ffmpeg
-Alternatively, import echonest.remix.support.ffmpeg and modify ffmpeg.FFMPEG to name
-the appropriate binary.
 """
 
 def ffmpeg_error_check(parsestring):
@@ -217,7 +223,7 @@ def ffmpeg_error_check(parsestring):
                    "Could not find codec",  # corrupted, incomplete, or otherwise bad file
                     ]
     for num, line in enumerate(parse):
-        if "command not found" in line or FFMPEG+": not found" in line:
+        if "command not found" in line or "en-ffmpeg: not found" in line:
             raise RuntimeError(ffmpeg_install_instructions)
         for error in error_cases:
             if error in line:

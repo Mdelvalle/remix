@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-__version__ = "2.4.0"
+__version__ = "2.2.1"
 
 # Monkeypatch so that easy_install can install en-ffmpeg and youtube-dl
 try:
@@ -14,7 +14,6 @@ except ImportError:
 
 import sys
 import os
-import subprocess
 import glob
 from distutils.core import setup, Extension
 import numpy
@@ -37,7 +36,7 @@ def get_action():
     return Extension("cAction",
                         sources = [os.path.join(cAction, 'actionmodule.cpp')],
                         extra_compile_args = compile_args,
-                        include_dirs = [numpy.get_include()],
+                        include_dirs = [numpy.get_include(), numpy.get_numarray_include()],
                      )
 
 
@@ -53,7 +52,7 @@ def get_dirac():
     return Extension('dirac',
                     sources = lib_sources,
                     extra_compile_args = compile_args,
-                     include_dirs = ['source', numpy.get_include()],
+                    include_dirs = ['source', numpy.get_include(), numpy.get_numarray_include()],
                     libraries = [libname],
                     library_dirs = [os.path.join(pydirac, 'libs', platform)],
                     extra_link_args = link_args,
@@ -75,13 +74,10 @@ def get_soundtouch():
 
     extra_compile_args = []
 
-    if is_linux:
+    if is_linux or is_mac:
         sources += ['cpu_detect_x86_gcc.cpp']
-        extra_compile_args = ['-O3', '-Wno-unused']
-    elif is_mac:
-        sources += ['cpu_detect_x86_gcc.cpp']
-        extra_compile_args = ['-O3', '-Wno-unused']
-    elif is_windows:
+        extra_compile_args = ['-fcheck-new', '-O3', '-Wno-unused']
+    else:
         sources += ['cpu_detect_x86_win.cpp', '3dnow_win.cpp']
     pysoundtouch = os.path.join('external', 'pysoundtouch14', 'libsoundtouch')
     lib_sources = [os.path.join(pysoundtouch, i) for i in sources]
@@ -89,7 +85,7 @@ def get_soundtouch():
     return Extension('soundtouch',
                      sources = lib_sources,
                      extra_compile_args = extra_compile_args,
-                     include_dirs = [numpy.get_include()]
+                     include_dirs = [numpy.get_include(), numpy.get_numarray_include()]
     )
 
 
@@ -144,10 +140,10 @@ setup(name='remix',
       description='The internet synthesizer. Make things with music.',
       author='The Echo Nest',
       author_email='brian@echonest.com',
-      maintainer='Brian Whitman',
-      maintainer_email='brian@echonest.com',
+      maintainer='Brian Whitman, Thor Kell',
+      maintainer_email='thor.kell@mail.mcgill.ca',
       url='http://developer.echonest.com/',
-      download_url='http://static.echonest.com/remix/packages/remix-%s.tar.gz' % __version__,
+      download_url='http://static.echonest.com/remix/packages/remix-%s.tar.gz' % __version__, 
       license='New BSD',
       data_files= all_data_files,
       package_dir={'echonest':'src/echonest', 'pyechonest':'pyechonest/pyechonest'},
@@ -174,14 +170,3 @@ try:
         os.chmod(os.path.join(data_path, 'youtube-dl'), 0755)
 except OSError:
     pass
-
-# Hack to fix ownership of example files, when installing with sudo
-# This does not need to be done on a virtualenv install
-# And, if we do setup.py develop, the files might not be there
-if is_mac or is_linux and 'real_prefix' not in dir(sys) and 'install' in sys.argv:
-    example_path = dest_prefix + 'examples/'
-    if os.path.exists(example_path):
-        res = subprocess.Popen(['logname'], stdout=subprocess.PIPE).communicate()[0]
-        user_name = res.strip()
-        group_id = os.getpgrp()
-        res = subprocess.call(['chown', '-R', '%s:%s' % (user_name, group_id), example_path])

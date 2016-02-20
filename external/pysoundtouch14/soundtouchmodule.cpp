@@ -24,13 +24,13 @@
 
 #include <Python.h>
 #include <numpy/arrayobject.h>
-// #include <numpy/libnumarray.h>
+#include <numpy/libnumarray.h>
 #include <iostream>
 #include <stdexcept>
 #include "libsoundtouch/SoundTouch.h"
 #include "libsoundtouch/BPMDetect.h"
 
-
+ 
 static PyObject *SoundTouchError;
 
 
@@ -242,19 +242,25 @@ SoundTouch_putSamples(SoundTouch *self, PyObject *args)
   /*
 
   typeObject = PyObject_CallMethod(osound, "type", NULL);
-
+  
   type = NA_typeObjectToTypeNo(typeObject);
-
+  
   Py_DECREF(typeObject);
-*/
+*/  
+  type = tFloat32; // hack for now
+  
+  if(type != tFloat32)
+    {
+      PyErr_Format(SoundTouchError, "sounds must be Float32");
+      return NULL;
+    }
 
-  // WAS: sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
-  sound = (PyArrayObject*) PyArray_FromAny(osound, PyArray_DescrFromType(PyArray_FLOAT), 1, 2, NPY_C_CONTIGUOUS, NULL);
-
+  sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
+  
   if(!sound)
     {
       Py_XDECREF(sound);
-      PyErr_Format(SoundTouchError,
+      PyErr_Format(SoundTouchError, 
                    "couldn't convert array to PyArrayObject.");
       return NULL;
     }
@@ -265,8 +271,7 @@ SoundTouch_putSamples(SoundTouch *self, PyObject *args)
       return NULL;
     }
 
-  // samples = (Float32 *) NA_OFFSETDATA(sound);
-  samples = (float*) PyArray_DATA(sound);
+  samples = (Float32 *) NA_OFFSETDATA(sound);
   uint numSamples = sound->dimensions[0];
   uint channels = self->soundtouch->_getchannels();
 
@@ -289,7 +294,7 @@ SoundTouch_receiveSamples(SoundTouch *self, PyObject *args)
   float *samples;
   PyObject *osound;
   PyArrayObject *sound;
-  // int type;
+  int type;
   PyObject *typeObject;
 
   if(!PyArg_ParseTuple(args, "O", &osound)) {
@@ -305,14 +310,12 @@ SoundTouch_receiveSamples(SoundTouch *self, PyObject *args)
       return NULL;
     }
 */
-  // type = tFloat32; //hack
-  // sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
-  sound = (PyArrayObject*) PyArray_FromAny(osound, PyArray_DescrFromType(PyArray_FLOAT), 1, 2, NPY_C_CONTIGUOUS, NULL);
-
+    type = tFloat32; //hack
+  sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
   if(!sound)
     {
       Py_XDECREF(sound);
-      PyErr_Format(SoundTouchError,
+      PyErr_Format(SoundTouchError, 
                    "couldn't convert array to PyArrayObject.");
       return NULL;
     }
@@ -326,11 +329,10 @@ SoundTouch_receiveSamples(SoundTouch *self, PyObject *args)
 
   uint length = sound->dimensions[0];
   uint channels = self->soundtouch->_getchannels();
-  // samples = (Float32 *) NA_OFFSETDATA(sound);
-  samples = (float*) PyArray_DATA(sound);
+  samples = (Float32 *) NA_OFFSETDATA(sound);
 
   length = self->soundtouch->receiveSamples(samples, length / channels);
-
+  
   return Py_BuildValue("i", length);
 }
 
@@ -392,7 +394,7 @@ SoundTouch_numSamples(SoundTouch *self)
 
 /*
 static PyGetSetDef SoundTouch_getseters[] = {
-  {"rate", (getter) SoundTouch_getrate, NULL,
+  {"rate", (getter) SoundTouch_getrate, NULL, 
    "Effective 'rate' value calculated from 'virtualRate', 'virtualTempo'"
    "and 'virtualPitch'"},
   {
@@ -487,7 +489,7 @@ static PyMethodDef SoundTouch_methods[] = {
 };
 
 
-static char * SoundTouch_doc =
+static char * SoundTouch_doc = 
 " SoundTouch - main class for tempo/pitch/rate adjusting routines.\n"
 "\n"
 " Notes:\n"
@@ -589,35 +591,32 @@ soundtouch_find_bpm(PyObject *obj, PyObject *args)
 
   int length;
   float tempo;
-  // Float32 *samples;
-  float *samples;
+  Float32 *samples;
   PyArrayObject *sound;
   PyObject *typeObject;
   int type;
 
-  // if(!sizeof(Float32) == sizeof(float))
-  //   {
-  //     PyErr_Format(SoundTouchError,
-  //                  "numarray Float32 != float on this machine");
-  //     return NULL;
-  //   }
+  if(!sizeof(Float32) == sizeof(float))
+    {
+      PyErr_Format(SoundTouchError, 
+                   "numarray Float32 != float on this machine");
+      return NULL;
+    }
 
   if(!PyArg_ParseTuple(args, "Oi", &osound, &samplerate)) {
     return NULL;
   }
 
-  // TODO - nicola: not sure about commenting out this, check again
-  // typeObject = PyObject_CallMethod(osound, "type", NULL);
-  // type = NA_typeObjectToTypeNo(typeObject);
-  // Py_DECREF(typeObject);
-  // if(type != tFloat32)
-  //   {
-  //     PyErr_Format(SoundTouchError, "sounds must be Float32");
-  //     return NULL;
-  //   }
+  typeObject = PyObject_CallMethod(osound, "type", NULL);
+  type = NA_typeObjectToTypeNo(typeObject);
+  Py_DECREF(typeObject);
+  if(type != tFloat32)
+    {
+      PyErr_Format(SoundTouchError, "sounds must be Float32");
+      return NULL;
+    }
 
-  // sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
-  sound = (PyArrayObject*) PyArray_FromAny(osound, PyArray_DescrFromType(PyArray_FLOAT), 1, 2, NPY_C_CONTIGUOUS, NULL);
+  sound = (PyArrayObject *) NA_InputArray(osound, tFloat32, NUM_C_ARRAY);
   if(!sound)
     {
       Py_XDECREF(sound);
@@ -631,9 +630,7 @@ soundtouch_find_bpm(PyObject *obj, PyObject *args)
       return NULL;
     }
 
-  // samples = (Float32 *) NA_OFFSETDATA(sound);
-  samples = (float*) PyArray_DATA(sound);
-
+  samples = (Float32 *) NA_OFFSETDATA(sound);
   length = sound->dimensions[0];
 
   /* The real code */
@@ -668,7 +665,7 @@ static PyMethodDef soundtouch_methods[] = {
 };
 
 
-extern "C"
+extern "C" 
 PyMODINIT_FUNC initsoundtouch(void)
 {
   PyObject *module;
@@ -678,15 +675,16 @@ PyMODINIT_FUNC initsoundtouch(void)
 
   module = Py_InitModule3("soundtouch", soundtouch_methods,
                           "soundtouch audio processing library");
-
+  
 
   Py_INCREF(&SoundTouchType);
-  PyModule_AddObject(module, "SoundTouch",
+  PyModule_AddObject(module, "SoundTouch", 
                      (PyObject *)&SoundTouchType);
 
   SoundTouchError = PyErr_NewException("soundtouch.error", NULL, NULL);
   Py_INCREF(SoundTouchError);
   PyModule_AddObject(module, "error", SoundTouchError);
 
-  // import_libnumarray();
+  import_libnumarray();
 }
+
