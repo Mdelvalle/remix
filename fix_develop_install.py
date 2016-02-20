@@ -38,10 +38,3 @@ f = open(easy_install_path, 'a')
 f.write(remix_source_string)
 f.write(pyechonest_source_string)
 f.close()
-
-# Copy youtube-dl out
-print "Copying youtube-dl to /usr/local/bin"
-data_path = os.path.join(sys.prefix, "local/bin/youtube-dl")
-shutil.copyfile('external/youtube-dl/youtube-dl', data_path)
-os.chmod(data_path, 0755)
-
